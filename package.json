@@ -1,0 +1,23 @@
+{
+  "name": "study-webgl-school",
+  "version": "1.0.0",
+  "description": "WebGLスクールの課題用リポジトリ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/httky/study-webgl-school.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/httky/study-webgl-school/issues"
+  },
+  "homepage": "https://github.com/httky/study-webgl-school#readme",
+  "volta": {
+    "node": "18.13.0"
+  }
+}
