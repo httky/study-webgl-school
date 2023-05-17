@@ -1,3 +1,6 @@
-import './style.css'
+import { Canvas } from '@/modules/Canvas'
+import '@/style.css'
 
-console.log('test')
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = new Canvas({ container: document.querySelector('#app') })
+}, false)
