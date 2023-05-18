@@ -27,6 +27,7 @@ export class Canvas {
       dLightX: 1.0,
       dLightY: 1.0,
       dLightZ: 1.0,
+      dLightVisible: false,
       aLightColor: 0xffffff,
       aLightIntensity: 0.2,
     }
@@ -36,6 +37,7 @@ export class Canvas {
     this.scene = undefined
     this.camera = undefined
     this.directionalLight = undefined
+    this.directionalLightHelper = undefined
     this.ambientLight = undefined
     this.material = undefined
     this.boxGeometry = undefined
@@ -94,6 +96,10 @@ export class Canvas {
       this.params.dLightZ,
     )
     this.scene.add(this.directionalLight)
+    this.directionalLightHelper = new THREE.DirectionalLightHelper(this.directionalLight, 5)
+    this.directionalLightHelper.visible = this.params.dLightVisible
+    this.scene.add(this.directionalLightHelper)
+
     this.ambientLight = new THREE.AmbientLight(
       this.params.aLightColor,
       this.params.aLightIntensity,
@@ -122,7 +128,7 @@ export class Canvas {
     window.removeEventListener('resize', this.onResize, false)
   }
   /**
-   * createMeshes
+   * createDebug
    */
   createDebug() {
     // stats
@@ -159,6 +165,9 @@ export class Canvas {
     })
     direcrionalLightFolder.add(this.params, 'dLightZ', -10, 10).name('z').step(0.1).onChange(() => {
       this.directionalLight.position.z = this.params.dLightZ
+    })
+    direcrionalLightFolder.add(this.params, 'dLightVisible').name('visible').onChange(() => {
+      this.directionalLightHelper.visible = this.params.dLightVisible
     })
 
     const ambientLightFolder = this.gui.addFolder('ambientLight')
@@ -229,6 +238,8 @@ export class Canvas {
     this.meshes.children.forEach((mesh) => {
       mesh.rotation.y += 0.01
     })
+
+    this.directionalLightHelper.update()
 
     this.renderer.render(this.scene, this.camera)
     this.stats.update()
