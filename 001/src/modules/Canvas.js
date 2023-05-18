@@ -15,8 +15,8 @@ export class Canvas {
       boxNum: 100,
       boxSize: 0.4,
       cameraFovy: 60,
-      cameraNear: 0.1,
-      cameraFar: 10.0,
+      cameraNear: 0.01,
+      cameraFar: 100.0,
       cameraX: 0.0,
       cameraY: 2.0,
       cameraZ: 5.0,
@@ -36,6 +36,7 @@ export class Canvas {
     this.renderer = undefined
     this.scene = undefined
     this.camera = undefined
+    this.cameraHelper = undefined
     this.directionalLight = undefined
     this.directionalLightHelper = undefined
     this.ambientLight = undefined
@@ -81,6 +82,10 @@ export class Canvas {
       this.params.cameraZ
     )
     this.camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
+    // FIXME: 思った見た目と違う...
+    this.cameraHelper = new THREE.CameraHelper(this.camera)
+    this.cameraHelper.visible = false
+    this.scene.add(this.cameraHelper)
 
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -239,6 +244,7 @@ export class Canvas {
       mesh.rotation.y += 0.01
     })
 
+    this.cameraHelper.update()
     this.directionalLightHelper.update()
 
     this.renderer.render(this.scene, this.camera)
