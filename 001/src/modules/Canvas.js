@@ -82,7 +82,9 @@ export class Canvas {
       this.params.cameraZ
     )
     this.camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
-    // FIXME: 思った見た目と違う...
+    // FIXME: 思った見た目と違う... OrbitControlsかましてるから？
+    // このへん見てみる
+    // https://threejs.org/examples/#webgl_camera
     this.cameraHelper = new THREE.CameraHelper(this.camera)
     this.cameraHelper.visible = false
     this.scene.add(this.cameraHelper)
