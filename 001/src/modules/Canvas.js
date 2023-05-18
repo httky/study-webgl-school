@@ -11,6 +11,10 @@ export class Canvas {
       width: 0,
       height: 0,
     }
+    this.viewport = {
+      width: 0,
+      height: 0,
+    }
     this.params = {
       boxNum: 100,
       boxSize: 0.4,
@@ -205,8 +209,8 @@ export class Canvas {
     for (let i = 0; i < this.params.boxNum; i++) {
       const mesh = new THREE.Mesh(this.boxGeometry, this.material)
       mesh.position.set(
-        Math.random() * 10 - 5,
-        Math.random() * 10 - 5,
+        Math.random() * this.viewport.width - (this.viewport.width / 2),
+        Math.random() * this.viewport.height - (this.viewport.height / 2),
         Math.random() * 10 - 5
       )
       group.add(mesh)
@@ -232,9 +236,19 @@ export class Canvas {
       width: window.innerWidth,
       height: window.innerHeight,
     }
+
     this.renderer.setSize(this.screen.width, this.screen.height)
     this.camera.aspect = this.screen.width / this.screen.height
     this.camera.updateProjectionMatrix()
+
+    const fov = this.camera.fov * (Math.PI / 180)
+    const height = 2 * Math.tan(fov / 2) * this.camera.position.z
+    const width = height * this.camera.aspect
+
+    this.viewport = {
+      width,
+      height,
+    }
   }
   /**
    * update
