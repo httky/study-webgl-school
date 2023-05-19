@@ -161,6 +161,11 @@ export class Canvas {
         mesh.scale.set(this.params.boxSize, this.params.boxSize, this.params.boxSize)
       })
     })
+    boxFolder.addColor(this.params, 'materialColor').name('color').onChange(() => {
+      this.meshes.children.forEach((mesh) => {
+        mesh.material.color = new THREE.Color(this.params.materialColor)
+      })
+    })
 
     const direcrionalLightFolder = this.gui.addFolder('direcrionalLight')
     direcrionalLightFolder.addColor(this.params, 'dLightColor').name('color').onChange(() => {
