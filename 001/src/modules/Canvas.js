@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import GUI from 'lil-gui'
 import gsap from 'gsap'
+import { map } from '@/utils/'
 
 export class Canvas {
   constructor({ container }) {
@@ -206,13 +207,39 @@ export class Canvas {
       this.params.boxSize
     )
 
+    const halfViewportWidth = this.viewport.width / 2
+    const halfViewportHeight = this.viewport.height / 2
+
     for (let i = 0; i < this.params.boxNum; i++) {
       const mesh = new THREE.Mesh(this.boxGeometry, this.material)
+      // randomパターン
       mesh.position.set(
         Math.random() * this.viewport.width - (this.viewport.width / 2),
         Math.random() * this.viewport.height - (this.viewport.height / 2),
         Math.random() * 10 - 5
       )
+
+      // randomパターン2
+      // mesh.position.set(
+      //   Math.random() * this.viewport.width - (this.viewport.width / 2),
+      //   0,
+      //   Math.random() * 10 - 5
+      // )
+
+      // 横整列
+      // mesh.position.set(
+      //   map(i, -halfViewportWidth, halfViewportWidth, 0, this.params.boxNum),
+      //   0,
+      //   0
+      // )
+
+      // sin波に沿って配置
+      // mesh.position.set(
+      //   map(i, -halfViewportWidth, halfViewportWidth, 0, this.params.boxNum),
+      //   map(Math.sin((i * 2 % 360) * Math.PI / 180), -halfViewportHeight, halfViewportHeight, -1, 1),
+      //   0
+      // )
+
       group.add(mesh)
     }
 
