@@ -35,6 +35,7 @@ export class Canvas {
       dLightVisible: false,
       aLightColor: 0xffffff,
       aLightIntensity: 0.2,
+      axesHelperVisible: false,
     }
     this.stats = undefined
     this.gui = undefined
@@ -118,6 +119,11 @@ export class Canvas {
     )
     this.scene.add(this.ambientLight)
 
+    // axesHelper
+    this.axesHelper = new THREE.AxesHelper(5)
+    this.axesHelper.visible = this.params.axesHelperVisible
+    this.scene.add(this.axesHelper)
+
     this.updateSize()
     this.meshes = this.createMeshes()
     this.scene.add(this.meshes)
@@ -193,6 +199,11 @@ export class Canvas {
     })
     ambientLightFolder.add(this.params, 'aLightIntensity', 0, 1).name('intensity').step(0.1).onChange(() => {
       this.ambientLight.intensity = this.params.aLightIntensity
+    })
+
+    const axesHelperFolder = this.gui.addFolder('axesHelper')
+    axesHelperFolder.add(this.params, 'axesHelperVisible').name('visible').onChange(() => {
+      this.axesHelper.visible = this.params.axesHelperVisible
     })
   }
   /**
