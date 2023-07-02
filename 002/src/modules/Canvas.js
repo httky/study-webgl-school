@@ -80,6 +80,7 @@ export class Canvas {
 
     // scene
     this.scene = new THREE.Scene()
+    this.scene.rotation.y = degToRad(-45)
 
     // camera
     this.camera = new THREE.PerspectiveCamera(
@@ -158,7 +159,7 @@ export class Canvas {
     // gui
     this.gui = new GUI()
     this.gui.add(this.params, 'isSwinging').name('isSwinging')
-    this.gui.add(this.params, 'fanPower', 0.0, 0.1).name('fanPower')
+    this.gui.add(this.params, 'fanPower', 0.0, 0.3).name('fanPower')
 
     const helperFolder = this.gui.addFolder('helper')
     helperFolder.add(this.params, 'helperVisible').name('visible').onChange(() => {
