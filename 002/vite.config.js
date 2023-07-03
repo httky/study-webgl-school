@@ -4,11 +4,12 @@ import { terser } from 'rollup-plugin-terser'
 import { resolve } from 'path'
 
 const root = resolve(__dirname, 'src')
-const outDir = resolve(__dirname, '../docs/001')
+const outDir = resolve(__dirname, '../docs/002')
+const VITE_ENV = process.env.NODE_ENV
 
 const viteConfig = defineConfig({
   root,
-  base: process.env.NODE_ENV === 'production' ? '/study-webgl-school/001/' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/study-webgl-school/002/' : '/',
   plugins: [
     glsl(),
   ],

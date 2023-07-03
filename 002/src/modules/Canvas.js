@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import * as CANNON from 'cannon-es'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import GUI from 'lil-gui'
@@ -35,9 +36,17 @@ export class Canvas {
       dLightVisible: false,
       aLightColor: 0xffffff,
       aLightIntensity: 0.2,
-      helperVisible: true,
+      helperVisible: import.meta.env.VITE_ENV === 'development',
       isSwinging: false,
-      fanPower: 0.00,
+      // fanPower: 0.00,
+      fanPower: 0.10,
+      Nx: 15,
+      Ny: 15,
+      mass: 1,
+      clothSize: 1,
+      sphereSize: 0.2,
+      movementRadius: 0.2,
+      timeStep: 1 / 60,
     }
     this.stats = undefined
     this.gui = undefined
@@ -57,6 +66,14 @@ export class Canvas {
     this.axesHelper = undefined
     this.countTime = 0
     this.arrowHelper = undefined
+
+    this.world = undefined
+    this.particles = []
+    this.dist = undefined
+    this.clothGeometry = undefined
+    this.clothMesh = undefined
+    this.sphereBody = undefined
+    this.sphereMesh = undefined
 
     // bind
     this.update = this.update.bind(this)
@@ -127,7 +144,14 @@ export class Canvas {
 
     this.updateSize()
     this.meshes = this.createMeshes()
-    console.log(this.meshes.children)
+
+    this.world = new CANNON.World({
+      gravity: new CANNON.Vec3(0, -9.82, 0),
+    })
+
+    this.createCloth()
+    this.createSphere()
+
     this.scene.add(this.meshes)
     this.attachEvents()
   }
@@ -165,6 +189,7 @@ export class Canvas {
     helperFolder.add(this.params, 'helperVisible').name('visible').onChange(() => {
       this.axesHelper.visible = this.params.helperVisible
       this.arrowHelper.visible = this.params.helperVisible
+      this.sphereMesh.visible = this.params.helperVisible
     })
   }
   /**
@@ -246,6 +271,85 @@ export class Canvas {
     this.scene.remove(this.meshes)
   }
   /**
+   * createCloth
+   */
+  createCloth() {
+    this.dist = this.params.clothSize / this.params.Nx
+    const shape = new CANNON.Particle()
+
+    // ポイントをうっていく
+    for(let i = 0; i < this.params.Nx + 1; i++) {
+      this.particles.push([])
+      for(let j = 0; j < this.params.Ny + 1; j++) {
+        const particle = new CANNON.Body({
+          mass: j === this.params.Ny ? 0 : this.params.mass, // 繋ぎ止めとくために質量0にする
+          shape,
+          position: new CANNON.Vec3(
+            (i - this.params.Nx * 0.5) * this.dist,
+            (j - this.params.Ny * 0.5) * this.dist,
+            0
+          ),
+          velocity: new CANNON.Vec3(0, 0, -0.1 * (this.params.Ny - j)),
+        })
+        this.particles[i].push(particle)
+        this.world.addBody(particle)
+      }
+    }
+
+    // cannonの世界で繋ぎ合わせる
+    for(let i = 0; i < this.params.Nx + 1; i++) {
+      for(let j = 0; j < this.params.Ny + 1; j++) {
+        if(i < this.params.Nx)
+          this.connect(i, j, i + 1, j)
+        if(j < this.params.Ny)
+          this.connect(i, j, i, j + 1)
+      }
+    }
+
+    this.clothGeometry = new THREE.PlaneGeometry(2, 2, this.params.Nx, this.params.Ny)
+
+    // const clothMat = new THREE.MeshPhongMaterial({
+    //   side: THREE.DoubleSide,
+    //   // wireframe: true,
+    //   wireframe: false,
+    // })
+    const clothMat = new THREE.MeshPhongMaterial({
+      color: this.params.materialColor,
+      wireframe: true,
+    })
+
+    this.clothMesh = new THREE.Mesh(this.clothGeometry, clothMat)
+    this.clothMesh.position.z = 2
+    this.scene.add(this.clothMesh)
+  }
+  /**
+   * connect
+   */
+  connect(i1, j1, i2, j2) {
+    this.world.addConstraint(new CANNON.DistanceConstraint(
+      this.particles[i1][j1],
+      this.particles[i2][j2],
+      this.dist
+    ))
+  }
+  /**
+   * createSphere
+   */
+  createSphere() {
+    const sphereGeometry = new THREE.SphereGeometry(this.params.sphereSize)
+    const sphereMat = new THREE.MeshPhongMaterial()
+
+    this.sphereMesh = new THREE.Mesh(sphereGeometry, sphereMat)
+    this.sphereMesh.visible = this.params.helperVisible
+    this.scene.add(this.sphereMesh)
+
+    const sphereShape = new CANNON.Sphere(this.params.sphereSize * 1.3)
+    this.sphereBody = new CANNON.Body({
+      shape: sphereShape
+    })
+    this.world.addBody(this.sphereBody)
+  }
+  /**
    * updateSize
    */
   updateSize() {
@@ -268,6 +372,21 @@ export class Canvas {
     }
   }
   /**
+   * updateParticules
+   */
+  updateParticules() {
+    const positionAttribute = this.clothGeometry.attributes.position
+    for(let i = 0; i < this.params.Nx + 1; i++) {
+      for (let j = 0; j < this.params.Ny + 1; j++) {
+        const index = j * (this.params.Nx + 1) + i
+        const position = this.particles[i][this.params.Ny - j].position
+
+        positionAttribute.setXYZ(index, position.x, position.y, position.z)
+        positionAttribute.needsUpdate = true
+      }
+    }
+  }
+  /**
    * update
    */
   update() {
@@ -281,6 +400,22 @@ export class Canvas {
     }
 
     this.directionalLightHelper.update()
+
+    this.updateParticules()
+    this.world.step(this.params.timeStep)
+
+    if (this.params.fanPower > 0) {
+      const movementRadius = 0.5
+      this.sphereBody.position.set(
+        movementRadius * this.fanHead.rotation.y,
+        0,
+        // TODO: ここの計算もっとスマートなのがありそう
+        // (this.params.fanPower * 2 - 0.5) + (Math.abs(this.fanHead.rotation.y)) * -0.2
+        (this.params.fanPower * 2 - 0.36) + (Math.abs(this.fanHead.rotation.y)) * -0.2
+      )
+
+      this.sphereMesh.position.copy(this.sphereBody.position)
+    }
 
     this.renderer.render(this.scene, this.camera)
     this.stats.update()
