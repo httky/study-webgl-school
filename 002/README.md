@@ -20,3 +20,6 @@ npm ci
 ## Scripts
 - `dev` ローカルサーバ起動
 - `build` ビルド
+
+## References
+- [clothsimulation](https://github.com/WaelYasmina/clothsimulation)
