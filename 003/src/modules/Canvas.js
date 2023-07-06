@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import GUI from 'lil-gui'
 import gsap from 'gsap'
-import { map } from '@/utils/'
+import { map, degToRad } from '@/utils/'
 
 export class Canvas {
   constructor({ container }) {
@@ -18,7 +18,9 @@ export class Canvas {
     }
     this.params = {
       boxNum: 100,
-      boxSize: 0.4,
+      earthRadius: 1.2,
+      earthSegments: 32,
+      planeSpeed: 0.8,
       cameraFovy: 60,
       cameraNear: 0.01,
       cameraFar: 100.0,
@@ -35,7 +37,7 @@ export class Canvas {
       dLightVisible: false,
       aLightColor: 0xffffff,
       aLightIntensity: 0.2,
-      axesHelperVisible: false,
+      axesHelperVisible: true,
     }
     this.stats = undefined
     this.gui = undefined
@@ -47,10 +49,16 @@ export class Canvas {
     this.directionalLightHelper = undefined
     this.ambientLight = undefined
     this.material = undefined
-    this.boxGeometry = undefined
+    this.earthGeometry = undefined
+    this.plane = undefined
+    this.planeGeometry = undefined
     this.meshes = undefined
     this.controls = undefined
     this.axesHelper = undefined
+    this.degrees = 0
+    this.planeRadius = this.params.earthRadius + 0.4
+    this.startPlaneVector = new THREE.Vector3(0, 0, 0)
+    this.endPlaneVector = new THREE.Vector3(0, 0, 0)
 
     // bind
     this.update = this.update.bind(this)
@@ -74,6 +82,7 @@ export class Canvas {
 
     // scene
     this.scene = new THREE.Scene()
+    this.scene.rotation.y = degToRad(-45)
 
     // camera
     this.camera = new THREE.PerspectiveCamera(
@@ -151,6 +160,7 @@ export class Canvas {
     // gui
     this.gui = new GUI()
 
+    this.gui.add(this.params, 'planeSpeed', 0.0, 2.0).name('planeSpeed')
     const axesHelperFolder = this.gui.addFolder('axesHelper')
     axesHelperFolder.add(this.params, 'axesHelperVisible').name('visible').onChange(() => {
       this.axesHelper.visible = this.params.axesHelperVisible
@@ -164,15 +174,21 @@ export class Canvas {
     // material
     this.material = new THREE.MeshPhongMaterial({ color: this.params.materialColor })
     // geometry
-    this.boxGeometry = new THREE.BoxGeometry(
-      this.params.boxSize,
-      this.params.boxSize,
-      this.params.boxSize
+    this.earthGeometry = new THREE.SphereGeometry(
+      this.params.earthRadius,
+      this.params.earthSegments,
+      this.params.earthSegments
     )
 
-    const mesh = new THREE.Mesh(this.boxGeometry, this.material)
+    const mesh = new THREE.Mesh(this.earthGeometry, this.material)
 
     group.add(mesh)
+
+    this.planeGeometry = new THREE.ConeGeometry(0.1, 0.4, 32)
+    this.plane = new THREE.Mesh(this.planeGeometry, this.material)
+    this.plane.position.set(this.planeRadius, 0, 0)
+
+    group.add(this.plane)
 
     return group
   }
@@ -214,9 +230,28 @@ export class Canvas {
   update() {
     this.controls.update()
 
-    this.meshes.children.forEach((mesh) => {
-      mesh.rotation.y += 0.01
-    })
+    // this.meshes.rotation.y += 0.01
+    this.degrees += this.params.planeSpeed
+    const radian = degToRad(this.degrees)
+
+    // planeの位置を更新する
+    this.startPlaneVector = this.plane.position.clone()
+    this.plane.position.x = (this.planeRadius) * Math.cos(radian)
+    this.plane.position.y = (this.planeRadius) * Math.sin(radian)
+    this.endPlaneVector = this.plane.position.clone()
+
+    // planeの向きを更新する
+    // 外積で回転軸を求める
+    const axis = this.startPlaneVector.clone().cross(this.endPlaneVector)
+    // 正規化する
+    axis.normalize()
+    // 内積で回転角を求める
+    const angle = this.startPlaneVector.angleTo(this.endPlaneVector)
+
+    // クオータニオンの定義
+    const qtn = new THREE.Quaternion()
+    qtn.setFromAxisAngle(axis, angle)
+    this.plane.quaternion.premultiply(qtn)
 
     this.directionalLightHelper.update()
 
