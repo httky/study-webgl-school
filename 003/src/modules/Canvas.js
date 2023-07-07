@@ -18,7 +18,7 @@ export class Canvas {
     }
     this.params = {
       boxNum: 100,
-      earthRadius: 1.2,
+      earthRadius: 1.6,
       earthSegments: 32,
       planeSpeed: 0.8,
       cameraFovy: 60,
@@ -170,9 +170,14 @@ export class Canvas {
    * createMeshes
    */
   createMeshes() {
+    const texture = new THREE.TextureLoader().load('./earth.png')
     const group = new THREE.Group()
     // material
     this.material = new THREE.MeshPhongMaterial({ color: this.params.materialColor })
+
+    const earthMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+    })
     // geometry
     this.earthGeometry = new THREE.SphereGeometry(
       this.params.earthRadius,
@@ -180,11 +185,11 @@ export class Canvas {
       this.params.earthSegments
     )
 
-    const mesh = new THREE.Mesh(this.earthGeometry, this.material)
+    const mesh = new THREE.Mesh(this.earthGeometry, earthMaterial)
 
     group.add(mesh)
 
-    this.planeGeometry = new THREE.ConeGeometry(0.1, 0.4, 32)
+    this.planeGeometry = new THREE.ConeGeometry(0.08, 0.3, 32)
     this.plane = new THREE.Mesh(this.planeGeometry, this.material)
     this.plane.position.set(this.planeRadius, 0, 0)
 
@@ -238,6 +243,8 @@ export class Canvas {
     this.startPlaneVector = this.plane.position.clone()
     this.plane.position.x = (this.planeRadius) * Math.cos(radian)
     this.plane.position.y = (this.planeRadius) * Math.sin(radian)
+    // FIXME: 思ってる蛇行にならない。クオータニオンの向きがz位置を反映していない？
+    // this.plane.position.z = Math.cos(radian * 3) * 0.2
     this.endPlaneVector = this.plane.position.clone()
 
     // planeの向きを更新する
