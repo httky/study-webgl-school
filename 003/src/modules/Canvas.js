@@ -40,6 +40,7 @@ export class Canvas {
       axesHelperVisible: true,
       followerCameraHelperVisible: true,
       losCameraHelperVisible: true,
+      isPLaneSwingZ: false,
     }
     this.stats = undefined
     this.gui = undefined
@@ -210,6 +211,10 @@ export class Canvas {
     this.gui = new GUI()
 
     this.gui.add(this.params, 'planeSpeed', 0.0, 2.0).name('planeSpeed')
+    this.gui.add(this.params, 'isPLaneSwingZ').name('isPLaneSwingZ').onChange(() => {
+      // リセットしとく
+      this.degrees = 0
+    })
     const helperFolder = this.gui.addFolder('helper')
     helperFolder.add(this.params, 'axesHelperVisible').name('axesHelper').onChange(() => {
       this.axesHelper.visible = this.params.axesHelperVisible
@@ -302,6 +307,7 @@ export class Canvas {
     this.controls.update()
 
     this.degrees += this.params.planeSpeed
+
     const radian = degToRad(this.degrees)
 
     // FIXME: planeの位置を更新するのをyをzにすると向きの更新がうまくいかない
@@ -310,7 +316,9 @@ export class Canvas {
     this.plane.position.x = (this.planeRadius) * Math.cos(radian)
     this.plane.position.y = (this.planeRadius) * Math.sin(radian)
     // FIXME: 思ってる蛇行にならない。クオータニオンの向きがz位置を反映していない？
-    // this.plane.position.z = Math.cos(radian * 3) * 0.2
+    if (this.params.isPLaneSwingZ) {
+      this.plane.position.z = Math.cos(radian * 3) * 0.6
+    }
     this.endPlaneVector = this.plane.position.clone()
 
     // planeの向きを更新する
@@ -340,9 +348,10 @@ export class Canvas {
       newFollowCameraPosition.y,
       newFollowCameraPosition.z
     )
+    // FIXME: 追従カメラが反転する lookAtが原因かな...
     this.followerCamera.lookAt(this.plane.position)
 
-    // FIXME: クオータニオンの向きに合わせたい
+    // TODO: クオータニオンでplaneとの向きに合わせたい
     // 追従カメラの向きを更新
     // const followCameraAxis = startFollowCameraVector.clone().cross(newFollowCameraPosition)
     // followCameraAxis.normalize()
@@ -352,8 +361,6 @@ export class Canvas {
     // followCameraQtn.setFromAxisAngle(followCameraAxis, followCameraAngle)
     // this.followerCamera.quaternion.premultiply(followCameraQtn)
     this.followerCamera.quaternion.premultiply(qtn)
-
-    // FIXME: 追従カメラが反転する
 
     this.directionalLightHelper.update()
     this.followerCamera.updateProjectionMatrix()
