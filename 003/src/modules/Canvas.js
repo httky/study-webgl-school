@@ -164,13 +164,13 @@ export class Canvas {
 
     // followerCameraHelper
     this.followerCameraHelper = new THREE.CameraHelper(this.followerCamera)
-    this.followerCameraHelper.visble = false
+    this.followerCameraHelper.visible = false
 
     this.scene.add(this.followerCamera)
     this.scene.add(this.followerCameraHelper)
 
     this.losCameraHelper = new THREE.CameraHelper(this.losCamera)
-    this.losCameraHelper.visble = false
+    this.losCameraHelper.visible = false
 
     this.scene.add(this.losCamera)
     this.scene.add(this.losCameraHelper)
@@ -350,13 +350,13 @@ export class Canvas {
     this.directionalLightHelper.update()
     this.followerCamera.updateProjectionMatrix()
     this.followerCameraHelper.update()
+    this.losCamera.updateProjectionMatrix()
     this.losCameraHelper.update()
 
     this.renderer.clear()
 
-    // FIXME: カメラヘルパーのvisble制御が効いていない？
-    this.followerCameraHelper.visble = false
-    this.losCameraHelper.visble = false
+    this.followerCameraHelper.visible = false
+    this.losCameraHelper.visible = false
 
     this.renderer.setViewport(0, 0, this.screen.width / 2, this.screen.height / 2)
     this.renderer.render(this.scene, this.followerCamera)
@@ -364,8 +364,8 @@ export class Canvas {
     this.renderer.setViewport(0, this.screen.height / 2, this.screen.width / 2, this.screen.height / 2)
     this.renderer.render(this.scene, this.losCamera)
 
-    this.followerCameraHelper.visble = true
-    this.losCameraHelper.visble = true
+    this.followerCameraHelper.visible = true
+    this.losCameraHelper.visible = true
 
     this.renderer.setViewport(this.screen.width / 2, 0, this.screen.width / 2, this.screen.height)
     this.renderer.render(this.scene, this.camera)
