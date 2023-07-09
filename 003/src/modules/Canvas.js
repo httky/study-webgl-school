@@ -38,6 +38,8 @@ export class Canvas {
       aLightColor: 0xffffff,
       aLightIntensity: 0.2,
       axesHelperVisible: true,
+      followerCameraHelperVisible: true,
+      losCameraHelperVisible: true,
     }
     this.stats = undefined
     this.gui = undefined
@@ -110,7 +112,7 @@ export class Canvas {
       30,
       screenAspect,
       1.0,
-      6.5
+      4.5
     )
     this.followerCamera.position.set(
       this.params.cameraX,
@@ -125,8 +127,8 @@ export class Canvas {
       this.screen.width / 2,
       this.screen.height / 2,
       this.screen.height / -2,
-      1.0,
-      6
+      1.5,
+      4.5
     )
     this.losCamera.position.z = 3.0
 
@@ -208,9 +210,15 @@ export class Canvas {
     this.gui = new GUI()
 
     this.gui.add(this.params, 'planeSpeed', 0.0, 2.0).name('planeSpeed')
-    const axesHelperFolder = this.gui.addFolder('axesHelper')
-    axesHelperFolder.add(this.params, 'axesHelperVisible').name('visible').onChange(() => {
+    const helperFolder = this.gui.addFolder('helper')
+    helperFolder.add(this.params, 'axesHelperVisible').name('axesHelper').onChange(() => {
       this.axesHelper.visible = this.params.axesHelperVisible
+    })
+    helperFolder.add(this.params, 'followerCameraHelperVisible').name('followerCamera').onChange(() => {
+      this.followerCameraHelper.visible = this.params.followerCameraHelperVisible
+    })
+    helperFolder.add(this.params, 'losCameraHelperVisible').name('losCamera').onChange(() => {
+      this.losCameraHelper.visible = this.params.losCameraHelperVisible
     })
   }
   /**
@@ -281,10 +289,10 @@ export class Canvas {
       height,
     }
 
-    this.losCamera.left = (this.viewport.width * 1.0) / -2
-    this.losCamera.right = (this.viewport.width * 1.0) / 2
-    this.losCamera.top = (this.viewport.height * 0.5) / 2
-    this.losCamera.bottom = (this.viewport.height * 0.5) / -2
+    this.losCamera.left = (this.viewport.width * 1.0) / -1.5
+    this.losCamera.right = (this.viewport.width * 1.0) / 1.5
+    this.losCamera.top = (this.viewport.height * 0.5) / 1.5
+    this.losCamera.bottom = (this.viewport.height * 0.5) / -1.5
     this.losCamera.updateProjectionMatrix()
   }
   /**
@@ -364,8 +372,8 @@ export class Canvas {
     this.renderer.setViewport(0, this.screen.height / 2, this.screen.width / 2, this.screen.height / 2)
     this.renderer.render(this.scene, this.losCamera)
 
-    this.followerCameraHelper.visible = true
-    this.losCameraHelper.visible = true
+    this.followerCameraHelper.visible = this.params.followerCameraHelperVisible
+    this.losCameraHelper.visible = this.params.losCameraHelperVisible
 
     this.renderer.setViewport(this.screen.width / 2, 0, this.screen.width / 2, this.screen.height)
     this.renderer.render(this.scene, this.camera)
