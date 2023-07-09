@@ -89,10 +89,12 @@ export class Canvas {
     this.scene = new THREE.Scene()
     // this.scene.rotation.y = degToRad(-45)
 
+    const screenAspect = this.screen.width / this.screen.height
+
     // camera
     this.camera = new THREE.PerspectiveCamera(
       this.params.cameraFovy,
-      this.screen.width / this.screen.height,
+      screenAspect,
       this.params.cameraNear,
       this.params.cameraFar
     )
@@ -103,9 +105,10 @@ export class Canvas {
     )
     this.camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
 
+    // 追従カメラ
     this.followerCamera = new THREE.PerspectiveCamera(
       30,
-      this.screen.width / this.screen.height,
+      screenAspect,
       1.0,
       6.5
     )
@@ -115,6 +118,17 @@ export class Canvas {
       this.params.cameraZ
     )
     this.followerCamera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
+
+    // 視点カメラ
+    this.losCamera = new THREE.OrthographicCamera(
+      this.screen.width / -2,
+      this.screen.width / 2,
+      this.screen.height / 2,
+      this.screen.height / -2,
+      1.0,
+      6
+    )
+    this.losCamera.position.z = 3.0
 
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -154,6 +168,12 @@ export class Canvas {
 
     this.scene.add(this.followerCamera)
     this.scene.add(this.followerCameraHelper)
+
+    this.losCameraHelper = new THREE.CameraHelper(this.losCamera)
+    this.losCameraHelper.visble = false
+
+    this.scene.add(this.losCamera)
+    this.scene.add(this.losCameraHelper)
 
     this.meshes = this.createMeshes()
     this.scene.add(this.meshes)
@@ -249,7 +269,6 @@ export class Canvas {
     this.camera.aspect = screenAspect * 0.5
     this.camera.updateProjectionMatrix()
 
-
     this.followerCamera.aspect = screenAspect
     this.followerCamera.updateProjectionMatrix()
 
@@ -261,6 +280,12 @@ export class Canvas {
       width,
       height,
     }
+
+    this.losCamera.left = (this.viewport.width * 1.0) / -2
+    this.losCamera.right = (this.viewport.width * 1.0) / 2
+    this.losCamera.top = (this.viewport.height * 0.5) / 2
+    this.losCamera.bottom = (this.viewport.height * 0.5) / -2
+    this.losCamera.updateProjectionMatrix()
   }
   /**
    * update
@@ -268,7 +293,6 @@ export class Canvas {
   update() {
     this.controls.update()
 
-    // this.meshes.rotation.y += 0.01
     this.degrees += this.params.planeSpeed
     const radian = degToRad(this.degrees)
 
@@ -326,16 +350,22 @@ export class Canvas {
     this.directionalLightHelper.update()
     this.followerCamera.updateProjectionMatrix()
     this.followerCameraHelper.update()
-    // this.followerCamera.lookAt(this.plane.position)
+    this.losCameraHelper.update()
 
     this.renderer.clear()
 
+    // FIXME: カメラヘルパーのvisble制御が効いていない？
     this.followerCameraHelper.visble = false
+    this.losCameraHelper.visble = false
 
     this.renderer.setViewport(0, 0, this.screen.width / 2, this.screen.height / 2)
     this.renderer.render(this.scene, this.followerCamera)
 
+    this.renderer.setViewport(0, this.screen.height / 2, this.screen.width / 2, this.screen.height / 2)
+    this.renderer.render(this.scene, this.losCamera)
+
     this.followerCameraHelper.visble = true
+    this.losCameraHelper.visble = true
 
     this.renderer.setViewport(this.screen.width / 2, 0, this.screen.width / 2, this.screen.height)
     this.renderer.render(this.scene, this.camera)
