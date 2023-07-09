@@ -272,6 +272,7 @@ export class Canvas {
     this.degrees += this.params.planeSpeed
     const radian = degToRad(this.degrees)
 
+    // FIXME: planeの位置を更新するのをyをzにすると向きの更新がうまくいかない
     // planeの位置を更新する
     this.startPlaneVector = this.plane.position.clone()
     this.plane.position.x = (this.planeRadius) * Math.cos(radian)
@@ -295,7 +296,9 @@ export class Canvas {
 
     // 追従カメラの位置を更新
     // 進行方向の向きベクトルを求める
-    const directionVector = this.endPlaneVector.clone().sub(this.startPlaneVector).normalize()
+    const startFollowCameraVector = this.followerCamera.position.clone()
+    const directionVector = this.endPlaneVector.clone().sub(this.startPlaneVector)
+    directionVector.normalize()
     // 進行方向の逆ベクトルを求める
     const reverseDirectionVector = directionVector.clone().negate()
     // 進行方向の逆ベクトルに5のスカラーをかける
@@ -306,8 +309,16 @@ export class Canvas {
       newFollowCameraPosition.z
     )
     this.followerCamera.lookAt(this.plane.position)
+
     // FIXME: クオータニオンの向きに合わせたい
-    // this.followerCamera.quaternion.premultiply(qtn.invert())
+    // 追従カメラの向きを更新
+    // const followCameraAxis = startFollowCameraVector.clone().cross(newFollowCameraPosition)
+    // followCameraAxis.normalize()
+    // const followCameraAngle = startFollowCameraVector.angleTo(newFollowCameraPosition)
+    //
+    // const followCameraQtn = new THREE.Quaternion()
+    // followCameraQtn.setFromAxisAngle(followCameraAxis, followCameraAngle)
+    // this.followerCamera.quaternion.premultiply(followCameraQtn)
     this.followerCamera.quaternion.premultiply(qtn)
 
     // FIXME: 追従カメラが反転する
