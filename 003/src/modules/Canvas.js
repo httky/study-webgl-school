@@ -18,14 +18,14 @@ export class Canvas {
     }
     this.params = {
       boxNum: 100,
-      earthRadius: 1.6,
+      earthRadius: 1.2,
       earthSegments: 32,
       planeSpeed: 0.8,
       cameraFovy: 60,
       cameraNear: 0.01,
       cameraFar: 100.0,
       cameraX: 0.0,
-      cameraY: 2.0,
+      cameraY: 1.0,
       cameraZ: 5.0,
       clearColor: 0x000000,
       materialColor: 0x3399ff,
@@ -45,6 +45,10 @@ export class Canvas {
     this.scene = undefined
     this.camera = undefined
     this.cameraHelper = undefined
+    this.followerCamera = undefined
+    this.followerCameraHelper = undefined
+    this.losCamera = undefined
+    this.losCameraHelper = undefined
     this.directionalLight = undefined
     this.directionalLightHelper = undefined
     this.ambientLight = undefined
@@ -78,11 +82,12 @@ export class Canvas {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(this.screen.width, this.screen.height)
     this.renderer.setAnimationLoop(this.update)
+    this.renderer.autoClear = false
     this.container.appendChild(this.renderer.domElement)
 
     // scene
     this.scene = new THREE.Scene()
-    this.scene.rotation.y = degToRad(-45)
+    // this.scene.rotation.y = degToRad(-45)
 
     // camera
     this.camera = new THREE.PerspectiveCamera(
@@ -98,8 +103,22 @@ export class Canvas {
     )
     this.camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
 
+    this.followerCamera = new THREE.PerspectiveCamera(
+      30,
+      this.screen.width / this.screen.height,
+      1.0,
+      6.5
+    )
+    this.followerCamera.position.set(
+      this.params.cameraX,
+      this.params.cameraY,
+      this.params.cameraZ
+    )
+    this.followerCamera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
+
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+
 
     // light
     this.directionalLight = new THREE.DirectionalLight(
@@ -122,12 +141,20 @@ export class Canvas {
     )
     this.scene.add(this.ambientLight)
 
+    this.updateSize()
+
     // axesHelper
     this.axesHelper = new THREE.AxesHelper(5)
     this.axesHelper.visible = this.params.axesHelperVisible
     this.scene.add(this.axesHelper)
 
-    this.updateSize()
+    // followerCameraHelper
+    this.followerCameraHelper = new THREE.CameraHelper(this.followerCamera)
+    this.followerCameraHelper.visble = false
+
+    this.scene.add(this.followerCamera)
+    this.scene.add(this.followerCameraHelper)
+
     this.meshes = this.createMeshes()
     this.scene.add(this.meshes)
     this.attachEvents()
@@ -215,10 +242,16 @@ export class Canvas {
       width: window.innerWidth,
       height: window.innerHeight,
     }
+    const screenAspect = this.screen.width / this.screen.height
 
     this.renderer.setSize(this.screen.width, this.screen.height)
-    this.camera.aspect = this.screen.width / this.screen.height
+    // 俯瞰カメラは画面半分にするので、アスペクト比も横半分にする
+    this.camera.aspect = screenAspect * 0.5
     this.camera.updateProjectionMatrix()
+
+
+    this.followerCamera.aspect = screenAspect
+    this.followerCamera.updateProjectionMatrix()
 
     const fov = this.camera.fov * (Math.PI / 180)
     const height = 2 * Math.tan(fov / 2) * this.camera.position.z
@@ -260,8 +293,40 @@ export class Canvas {
     qtn.setFromAxisAngle(axis, angle)
     this.plane.quaternion.premultiply(qtn)
 
-    this.directionalLightHelper.update()
+    // 追従カメラの位置を更新
+    // 進行方向の向きベクトルを求める
+    const directionVector = this.endPlaneVector.clone().sub(this.startPlaneVector).normalize()
+    // 進行方向の逆ベクトルを求める
+    const reverseDirectionVector = directionVector.clone().negate()
+    // 進行方向の逆ベクトルに5のスカラーをかける
+    const newFollowCameraPosition = reverseDirectionVector.clone().multiplyScalar(3.0)
+    this.followerCamera.position.set(
+      newFollowCameraPosition.x,
+      newFollowCameraPosition.y,
+      newFollowCameraPosition.z
+    )
+    this.followerCamera.lookAt(this.plane.position)
+    // FIXME: クオータニオンの向きに合わせたい
+    // this.followerCamera.quaternion.premultiply(qtn.invert())
+    this.followerCamera.quaternion.premultiply(qtn)
 
+    // FIXME: 追従カメラが反転する
+
+    this.directionalLightHelper.update()
+    this.followerCamera.updateProjectionMatrix()
+    this.followerCameraHelper.update()
+    // this.followerCamera.lookAt(this.plane.position)
+
+    this.renderer.clear()
+
+    this.followerCameraHelper.visble = false
+
+    this.renderer.setViewport(0, 0, this.screen.width / 2, this.screen.height / 2)
+    this.renderer.render(this.scene, this.followerCamera)
+
+    this.followerCameraHelper.visble = true
+
+    this.renderer.setViewport(this.screen.width / 2, 0, this.screen.width / 2, this.screen.height)
     this.renderer.render(this.scene, this.camera)
     this.stats.update()
   }
