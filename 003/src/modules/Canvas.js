@@ -37,10 +37,10 @@ export class Canvas {
       dLightVisible: false,
       aLightColor: 0xffffff,
       aLightIntensity: 0.2,
-      axesHelperVisible: true,
+      axesHelperVisible: false,
       followerCameraHelperVisible: true,
-      losCameraHelperVisible: true,
-      isPLaneSwingZ: false,
+      orthoCameraHelperVisible: false,
+      isPlaneSwingZ: false,
     }
     this.stats = undefined
     this.gui = undefined
@@ -50,8 +50,8 @@ export class Canvas {
     this.cameraHelper = undefined
     this.followerCamera = undefined
     this.followerCameraHelper = undefined
-    this.losCamera = undefined
-    this.losCameraHelper = undefined
+    this.orthoCamera = undefined
+    this.orthoCameraHelper = undefined
     this.directionalLight = undefined
     this.directionalLightHelper = undefined
     this.ambientLight = undefined
@@ -123,7 +123,7 @@ export class Canvas {
     this.followerCamera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
 
     // 視点カメラ
-    this.losCamera = new THREE.OrthographicCamera(
+    this.orthoCamera = new THREE.OrthographicCamera(
       this.screen.width / -2,
       this.screen.width / 2,
       this.screen.height / 2,
@@ -131,7 +131,7 @@ export class Canvas {
       1.5,
       4.5
     )
-    this.losCamera.position.z = 3.0
+    this.orthoCamera.position.z = 3.0
 
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -172,11 +172,11 @@ export class Canvas {
     this.scene.add(this.followerCamera)
     this.scene.add(this.followerCameraHelper)
 
-    this.losCameraHelper = new THREE.CameraHelper(this.losCamera)
-    this.losCameraHelper.visible = false
+    this.orthoCameraHelper = new THREE.CameraHelper(this.orthoCamera)
+    this.orthoCameraHelper.visible = false
 
-    this.scene.add(this.losCamera)
-    this.scene.add(this.losCameraHelper)
+    this.scene.add(this.orthoCamera)
+    this.scene.add(this.orthoCameraHelper)
 
     this.meshes = this.createMeshes()
     this.scene.add(this.meshes)
@@ -211,19 +211,19 @@ export class Canvas {
     this.gui = new GUI()
 
     this.gui.add(this.params, 'planeSpeed', 0.0, 2.0).name('planeSpeed')
-    this.gui.add(this.params, 'isPLaneSwingZ').name('isPLaneSwingZ').onChange(() => {
+    this.gui.add(this.params, 'isPlaneSwingZ').name('isPlaneSwingZ').onChange(() => {
       // リセットしとく
       this.degrees = 0
     })
     const helperFolder = this.gui.addFolder('helper')
-    helperFolder.add(this.params, 'axesHelperVisible').name('axesHelper').onChange(() => {
+    helperFolder.add(this.params, 'axesHelperVisible').name('axes').onChange(() => {
       this.axesHelper.visible = this.params.axesHelperVisible
     })
     helperFolder.add(this.params, 'followerCameraHelperVisible').name('followerCamera').onChange(() => {
       this.followerCameraHelper.visible = this.params.followerCameraHelperVisible
     })
-    helperFolder.add(this.params, 'losCameraHelperVisible').name('losCamera').onChange(() => {
-      this.losCameraHelper.visible = this.params.losCameraHelperVisible
+    helperFolder.add(this.params, 'orthoCameraHelperVisible').name('orthoCamera').onChange(() => {
+      this.orthoCameraHelper.visible = this.params.orthoCameraHelperVisible
     })
   }
   /**
@@ -294,11 +294,11 @@ export class Canvas {
       height,
     }
 
-    this.losCamera.left = (this.viewport.width * 1.0) / -1.5
-    this.losCamera.right = (this.viewport.width * 1.0) / 1.5
-    this.losCamera.top = (this.viewport.height * 0.5) / 1.5
-    this.losCamera.bottom = (this.viewport.height * 0.5) / -1.5
-    this.losCamera.updateProjectionMatrix()
+    this.orthoCamera.left = (this.viewport.width * 1.0) / -1.5
+    this.orthoCamera.right = (this.viewport.width * 1.0) / 1.5
+    this.orthoCamera.top = (this.viewport.height * 0.5) / 1.5
+    this.orthoCamera.bottom = (this.viewport.height * 0.5) / -1.5
+    this.orthoCamera.updateProjectionMatrix()
   }
   /**
    * update
@@ -316,7 +316,7 @@ export class Canvas {
     this.plane.position.x = (this.planeRadius) * Math.cos(radian)
     this.plane.position.y = (this.planeRadius) * Math.sin(radian)
     // FIXME: 思ってる蛇行にならない。クオータニオンの向きがz位置を反映していない？
-    if (this.params.isPLaneSwingZ) {
+    if (this.params.isPlaneSwingZ) {
       this.plane.position.z = Math.cos(radian * 3) * 0.6
     }
     this.endPlaneVector = this.plane.position.clone()
@@ -365,22 +365,22 @@ export class Canvas {
     this.directionalLightHelper.update()
     this.followerCamera.updateProjectionMatrix()
     this.followerCameraHelper.update()
-    this.losCamera.updateProjectionMatrix()
-    this.losCameraHelper.update()
+    this.orthoCamera.updateProjectionMatrix()
+    this.orthoCameraHelper.update()
 
     this.renderer.clear()
 
     this.followerCameraHelper.visible = false
-    this.losCameraHelper.visible = false
+    this.orthoCameraHelper.visible = false
 
     this.renderer.setViewport(0, 0, this.screen.width / 2, this.screen.height / 2)
     this.renderer.render(this.scene, this.followerCamera)
 
     this.renderer.setViewport(0, this.screen.height / 2, this.screen.width / 2, this.screen.height / 2)
-    this.renderer.render(this.scene, this.losCamera)
+    this.renderer.render(this.scene, this.orthoCamera)
 
     this.followerCameraHelper.visible = this.params.followerCameraHelperVisible
-    this.losCameraHelper.visible = this.params.losCameraHelperVisible
+    this.orthoCameraHelper.visible = this.params.orthoCameraHelperVisible
 
     this.renderer.setViewport(this.screen.width / 2, 0, this.screen.width / 2, this.screen.height)
     this.renderer.render(this.scene, this.camera)
