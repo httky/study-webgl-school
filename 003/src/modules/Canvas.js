@@ -350,7 +350,9 @@ export class Canvas {
       newFollowCameraPosition.y,
       newFollowCameraPosition.z
     )
-    // FIXME: 追従カメラが反転する lookAtが原因かな...
+    // NOTE: 追従カメラが反転しないようにplaneの上向きに合わせる
+    const direction = new THREE.Vector3(0.0,1.0,0.0).applyQuaternion(this.plane.quaternion)
+    this.followerCamera.up.copy(direction)
     this.followerCamera.lookAt(this.plane.position)
 
     // TODO: クオータニオンでplaneとの向きに合わせたい
