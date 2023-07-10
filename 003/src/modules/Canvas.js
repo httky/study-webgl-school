@@ -236,7 +236,9 @@ export class Canvas {
     this.material = new THREE.MeshPhongMaterial({ color: this.params.materialColor })
 
     const earthMaterial = new THREE.MeshBasicMaterial({
-      map: texture,
+      color: this.params.materialColor,
+      wireframe: true,
+      // map: texture,
     })
     // geometry
     this.earthGeometry = new THREE.SphereGeometry(
