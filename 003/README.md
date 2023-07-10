@@ -20,3 +20,13 @@ npm ci
 ## Scripts
 - `dev` ローカルサーバ起動
 - `build` ビルド
+
+## Memo
+ハマったこととか
+- 複数のカメラをrenderしようとした時、[WebGLRenderer.autoClear](https://threejs.org/docs/#api/en/renderers/WebGLRenderer.autoClear)をfalseにする
+  - この辺り、scissorとか使う方法もあるみたい
+- 追従カメラを作る時、カメラの天地が反転してしまってたけど、lookAtだでなく、[up](https://threejs.org/docs/#api/en/core/Object3D.up)を設定してあげる
+
+## References
+- [webgl_camera example](https://threejs.org/examples/#webgl_camera)
+- [WebGL開発に役立つ重要な三角関数の数式・概念まとめ（Three.js編）](https://ics.media/entry/10657/)
