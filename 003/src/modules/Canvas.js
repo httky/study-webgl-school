@@ -66,6 +66,7 @@ export class Canvas {
     this.planeRadius = this.params.earthRadius + 0.4
     this.startPlaneVector = new THREE.Vector3(0, 0, 0)
     this.endPlaneVector = new THREE.Vector3(0, 0, 0)
+    this.isUpdate = true
 
     // bind
     this.update = this.update.bind(this)
@@ -225,6 +226,11 @@ export class Canvas {
     helperFolder.add(this.params, 'orthoCameraHelperVisible').name('orthoCamera').onChange(() => {
       this.orthoCameraHelper.visible = this.params.orthoCameraHelperVisible
     })
+
+    this.gui.add({ toggle: () => {
+        this.isUpdate = !this.isUpdate
+        this.renderer.setAnimationLoop(this.isUpdate ? this.update : null)
+      } }, 'toggle').name('pause/play')
   }
   /**
    * createMeshes
