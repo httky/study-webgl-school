@@ -349,7 +349,7 @@ export class Canvas {
     directionVector.normalize()
     // 進行方向の逆ベクトルを求める
     const reverseDirectionVector = directionVector.clone().negate()
-    // 進行方向の逆ベクトルに5のスカラーをかける
+    // 進行方向の逆ベクトルに適当なスカラーをかける
     const newFollowCameraPosition = reverseDirectionVector.clone().multiplyScalar(3.0)
     this.followerCamera.position.set(
       newFollowCameraPosition.x,
