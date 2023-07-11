@@ -40,7 +40,7 @@ export class Canvas {
       axesHelperVisible: false,
       followerCameraHelperVisible: true,
       orthoCameraHelperVisible: false,
-      isPlaneSwingZ: false,
+      followerCameraPositionY: -4.0,
     }
     this.stats = undefined
     this.gui = undefined
@@ -57,6 +57,7 @@ export class Canvas {
     this.ambientLight = undefined
     this.material = undefined
     this.earthGeometry = undefined
+    this.planeGroup = undefined
     this.plane = undefined
     this.planeGeometry = undefined
     this.meshes = undefined
@@ -91,7 +92,6 @@ export class Canvas {
 
     // scene
     this.scene = new THREE.Scene()
-    // this.scene.rotation.y = degToRad(-45)
 
     const screenAspect = this.screen.width / this.screen.height
 
@@ -116,12 +116,6 @@ export class Canvas {
       1.0,
       4.5
     )
-    this.followerCamera.position.set(
-      this.params.cameraX,
-      this.params.cameraY,
-      this.params.cameraZ
-    )
-    this.followerCamera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0))
 
     // 視点カメラ
     this.orthoCamera = new THREE.OrthographicCamera(
@@ -133,6 +127,7 @@ export class Canvas {
       4.5
     )
     this.orthoCamera.position.z = 3.0
+    this.scene.add(this.orthoCamera)
 
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -166,18 +161,14 @@ export class Canvas {
     this.axesHelper.visible = this.params.axesHelperVisible
     this.scene.add(this.axesHelper)
 
+    this.orthoCameraHelper = new THREE.CameraHelper(this.orthoCamera)
+    this.orthoCameraHelper.visible = false
+    this.scene.add(this.orthoCameraHelper)
+
     // followerCameraHelper
     this.followerCameraHelper = new THREE.CameraHelper(this.followerCamera)
     this.followerCameraHelper.visible = false
-
-    this.scene.add(this.followerCamera)
     this.scene.add(this.followerCameraHelper)
-
-    this.orthoCameraHelper = new THREE.CameraHelper(this.orthoCamera)
-    this.orthoCameraHelper.visible = false
-
-    this.scene.add(this.orthoCamera)
-    this.scene.add(this.orthoCameraHelper)
 
     this.meshes = this.createMeshes()
     this.scene.add(this.meshes)
@@ -212,9 +203,8 @@ export class Canvas {
     this.gui = new GUI()
 
     this.gui.add(this.params, 'planeSpeed', 0.0, 2.0).name('planeSpeed')
-    this.gui.add(this.params, 'isPlaneSwingZ').name('isPlaneSwingZ').onChange(() => {
-      // リセットしとく
-      this.degrees = 0
+    this.gui.add(this.params, 'followerCameraPositionY', -5.0, -1.0).name('followerCamDist').onChange(() => {
+      this.followerCamera.position.y = this.params.followerCameraPositionY
     })
     const helperFolder = this.gui.addFolder('helper')
     helperFolder.add(this.params, 'axesHelperVisible').name('axes').onChange(() => {
@@ -257,11 +247,21 @@ export class Canvas {
 
     group.add(mesh)
 
+    this.planeGroup = new THREE.Group()
+    this.planeGroup.position.x = this.planeRadius
+    this.planeGroup.rotation.y = Math.PI / 2
+
     this.planeGeometry = new THREE.ConeGeometry(0.08, 0.3, 32)
     this.plane = new THREE.Mesh(this.planeGeometry, this.material)
-    this.plane.position.set(this.planeRadius, 0, 0)
+    this.planeGroup.add(this.plane)
 
-    group.add(this.plane)
+    // followerCamera
+    // 一定距離離す
+    this.followerCamera.position.set(0.0, this.params.followerCameraPositionY, 0.0)
+    this.followerCamera.lookAt(this.plane.position)
+    this.planeGroup.add(this.followerCamera)
+
+    group.add(this.planeGroup)
 
     return group
   }
@@ -318,16 +318,12 @@ export class Canvas {
 
     const radian = degToRad(this.degrees)
 
-    // FIXME: planeの位置を更新するのをyをzにすると向きの更新がうまくいかない
     // planeの位置を更新する
-    this.startPlaneVector = this.plane.position.clone()
-    this.plane.position.x = (this.planeRadius) * Math.cos(radian)
-    this.plane.position.y = (this.planeRadius) * Math.sin(radian)
-    // FIXME: 思ってる蛇行にならない。クオータニオンの向きがz位置を反映していない？
-    if (this.params.isPlaneSwingZ) {
-      this.plane.position.z = Math.cos(radian * 3) * 0.6
-    }
-    this.endPlaneVector = this.plane.position.clone()
+    this.startPlaneVector = this.planeGroup.position.clone()
+    this.planeGroup.position.x = (this.planeRadius) * Math.cos(radian)
+    this.planeGroup.position.y = (this.planeRadius) * Math.sin(radian)
+    this.planeGroup.position.z = Math.cos(radian * 3) * 0.6
+    this.endPlaneVector = this.planeGroup.position.clone()
 
     // planeの向きを更新する
     // 外積で回転軸を求める
@@ -340,38 +336,7 @@ export class Canvas {
     // クオータニオンの定義
     const qtn = new THREE.Quaternion()
     qtn.setFromAxisAngle(axis, angle)
-    this.plane.quaternion.premultiply(qtn)
-
-    // 追従カメラの位置を更新
-    // 進行方向の向きベクトルを求める
-    const startFollowCameraVector = this.followerCamera.position.clone()
-    const directionVector = this.endPlaneVector.clone().sub(this.startPlaneVector)
-    directionVector.normalize()
-    // 進行方向の逆ベクトルを求める
-    const reverseDirectionVector = directionVector.clone().negate()
-    // 進行方向の逆ベクトルに適当なスカラーをかける
-    const newFollowCameraPosition = reverseDirectionVector.clone().multiplyScalar(3.0)
-    this.followerCamera.position.set(
-      newFollowCameraPosition.x,
-      newFollowCameraPosition.y,
-      newFollowCameraPosition.z
-    )
-    // NOTE: 追従カメラが反転しないようにplaneの上向きに合わせる
-    const direction = new THREE.Vector3(0.0,1.0,0.0).applyQuaternion(this.plane.quaternion)
-    // this.followerCamera.up.copy(direction)
-    this.followerCamera.up.copy(direction.negate())
-    this.followerCamera.lookAt(this.plane.position)
-
-    // TODO: クオータニオンでplaneとの向きに合わせたい
-    // 追従カメラの向きを更新
-    // const followCameraAxis = startFollowCameraVector.clone().cross(newFollowCameraPosition)
-    // followCameraAxis.normalize()
-    // const followCameraAngle = startFollowCameraVector.angleTo(newFollowCameraPosition)
-    //
-    // const followCameraQtn = new THREE.Quaternion()
-    // followCameraQtn.setFromAxisAngle(followCameraAxis, followCameraAngle)
-    // this.followerCamera.quaternion.premultiply(followCameraQtn)
-    this.followerCamera.quaternion.premultiply(qtn)
+    this.planeGroup.quaternion.premultiply(qtn)
 
     this.directionalLightHelper.update()
     this.followerCamera.updateProjectionMatrix()
